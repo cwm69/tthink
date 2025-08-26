@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: 'Get started with Tersa',
 };
 
-export const maxDuration = 800; // For cloning operations
+export const maxDuration = 300; // 5 minutes (Vercel hobby plan limit)
 
 const Tutorial = async () => {
   const user = await currentUser();

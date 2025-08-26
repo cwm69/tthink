@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/kibo-ui/ai/source';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { useChatPanel } from '@/hooks/use-chat-panel';
 import { useReasoning } from '@/hooks/use-reasoning';
@@ -48,8 +49,8 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
-import { Response } from '@/components/ai-elements/response';
 import { toast } from 'sonner';
 import { mutate } from 'swr';
 import type { TextNodeProps } from '.';
@@ -227,6 +228,52 @@ export const TextTransform = ({
     navigator.clipboard.writeText(text);
     toast.success('copied to clipboard');
   }, []);
+
+  const [isEditingGenerated, setIsEditingGenerated] = useState(false);
+
+  const handleEditGenerated = useCallback(() => {
+    setIsEditingGenerated(true);
+  }, []);
+
+  const handleFinishEdit = useCallback(() => {
+    setIsEditingGenerated(false);
+  }, []);
+
+  // Handle canvas interactions that might leave edit mode stuck
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isEditingGenerated && event.target) {
+        const target = event.target as Element;
+        const nodeElement = target.closest(`[data-id="${id}"]`);
+        
+        // If click is outside this specific node, exit edit mode
+        if (!nodeElement) {
+          setIsEditingGenerated(false);
+        }
+      }
+    };
+
+    if (isEditingGenerated) {
+      // Use capture phase to catch canvas interactions
+      document.addEventListener('mousedown', handleClickOutside, true);
+      return () => document.removeEventListener('mousedown', handleClickOutside, true);
+    }
+  }, [isEditingGenerated, id]);
+
+  const handleGeneratedTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    updateNodeData(id, {
+      generated: {
+        ...data.generated,
+        text: e.target.value,
+      },
+    });
+  }, [id, updateNodeData, data.generated]);
+
+  // No longer needed - using textarea instead of rich text editor
+
+
+
+
 
   const handleOpenChat = useCallback(() => {
     setChatPanel({ isOpen: true, nodeId: id });
@@ -453,12 +500,57 @@ export const TextTransform = ({
             </div>
           )}
           {data.generated?.text &&
-            (!nonUserMessages.length || status !== 'streaming') &&
+            !nonUserMessages.length &&
+            status !== 'streaming' &&
             status !== 'submitted' && (
-              <div 
-                className="nodrag cursor-text select-text w-full"
-              >
-                <Response className="w-full break-words">{data.generated.text}</Response>
+              <div className="nodrag cursor-text select-text w-full">
+                {isEditingGenerated ? (
+                  <Textarea
+                    autoFocus
+                    value={data.generated?.text || ''}
+                    onChange={handleGeneratedTextChange}
+                    onBlur={(e) => {
+                      // Only finish editing if focus moved to something outside the node
+                      const relatedTarget = e.relatedTarget as Element | null;
+                      const nodeElement = e.currentTarget.closest(`[data-id="${id}"]`);
+                      
+                      // If no related target (like canvas interactions) or target is outside node
+                      if (!relatedTarget) {
+                        // Small delay to handle canvas zoom/pan edge cases
+                        setTimeout(() => {
+                          // Check if we're still in edit mode and no focus is in our node
+                          const activeElement = document.activeElement;
+                          const nodeStillHasFocus = nodeElement?.contains(activeElement);
+                          
+                          if (isEditingGenerated && !nodeStillHasFocus) {
+                            handleFinishEdit();
+                          }
+                        }, 100);
+                      } else if (!nodeElement?.contains(relatedTarget)) {
+                        handleFinishEdit();
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        handleFinishEdit();
+                      }
+                    }}
+                    placeholder="Edit text..."
+                    className="nodrag resize-none border-none bg-transparent shadow-none focus-visible:ring-0 min-h-[200px] text-sm"
+                  />
+                ) : (
+                  <div 
+                    className="w-full break-words cursor-text p-4 hover:bg-muted/20 rounded transition-colors"
+                    onDoubleClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleEditGenerated();
+                    }}
+                    title="Double-click to edit"
+                  >
+                    <AIResponse className="w-full break-words">{data.generated.text}</AIResponse>
+                  </div>
+                )}
               </div>
             )}
           {!data.generated?.text &&

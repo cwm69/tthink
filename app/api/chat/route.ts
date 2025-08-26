@@ -93,7 +93,7 @@ export const POST = async (req: Request) => {
         'The user already knows the context they provided - don\'t repeat it back unless specifically asked.',
         'Focus on discussing improvements, changes, and refinements directly.',
         'Be conversational and concise. Avoid formal recaps or restating the obvious.',
-        'IMPORTANT: Do not output code, files, or other artifacts directly in your responses.',
+        'IMPORTANT: Do not output the final node content directly in your responses.',
         'Instead, describe what you would create with enough detail that it can be applied to the node in a subsequent step.',
         'For example, instead of outputting actual code, describe the functions, logic, and structure that should be implemented.',
         model.id.startsWith('grok') &&

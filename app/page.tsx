@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     'Tersa is an open source canvas for building AI workflows. Drag, drop connect and run nodes to build your own workflows powered by various industry-leading AI models.',
 };
 
-export const maxDuration = 800; // For cloning operations
+export const maxDuration = 300; // 5 minutes (Vercel hobby plan limit)
 
 const Index = async () => {
   const user = await currentUser();
