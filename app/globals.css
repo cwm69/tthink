@@ -1,0 +1,373 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@xyflow/react/dist/style.css";
+@import "shadcn-prose";
+
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.91 0.18 163);
+  --primary-foreground: oklch(0.2 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer base {
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    @apply border-border;
+  }
+  * {
+    @apply min-w-0;
+  }
+  html {
+    text-rendering: optimizelegibility;
+  }
+  body {
+    @apply min-h-[100dvh];
+  }
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-muted-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+@layer utilities {
+  .prose-sm h1 {
+    @apply text-3xl font-semibold tracking-tight;
+  }
+  .prose-sm h2 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+  .prose-sm h3 {
+    @apply text-xl font-semibold tracking-tight;
+  }
+  .prose-sm h4 {
+    @apply text-lg font-semibold tracking-tight;
+  }
+  .prose-sm h5 {
+    @apply text-base font-semibold tracking-tight;
+  }
+  .prose-sm h6 {
+    @apply text-sm font-semibold tracking-tight;
+  }
+}
+
+@layer base {
+  .react-flow__background {
+    @apply bg-background!;
+  }
+  .react-flow__background-pattern.dots {
+    @apply fill-foreground/25!;
+  }
+  .react-flow__node.selected .node-container,
+  .react-flow__node.dragging .node-container {
+    @apply ring-2! ring-[var(--cursor-color,var(--primary))]!;
+  }
+  .react-flow__controls-button {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground rounded-full;
+    @apply border-none! size-9! bg-transparent! hover:bg-accent/50!;
+  }
+  .react-flow__controls-button > svg {
+    @apply size-4;
+  }
+  .react-flow__handle {
+    @apply !size-4 !border-2 !border-border !bg-background;
+  }
+  .react-flow__handle-left {
+    @apply !-left-4;
+  }
+  .react-flow__handle-right {
+    @apply !-right-4;
+  }
+  
+  /* Cursor styles for pan behavior */
+  .react-flow__pane {
+    cursor: grab !important;
+  }
+  
+  .react-flow__pane:active {
+    cursor: grabbing !important;
+  }
+  
+  .react-flow__pane.dragging {
+    cursor: grabbing !important;
+  }
+  
+  /* Node cursor styles for clarity - higher specificity */
+  .react-flow__node {
+    cursor: move !important;
+  }
+  
+  .react-flow__node:hover {
+    cursor: move !important;
+  }
+  
+  .react-flow__node.selected {
+    cursor: move !important;
+  }
+  
+  .react-flow__node .node-container {
+    cursor: move !important;
+  }
+  
+  .react-flow__node .node-container:hover {
+    cursor: move !important;
+  }
+  
+  /* Remove smoothing/transitions from node movement */
+  .react-flow__node {
+    transition: none !important;
+  }
+  
+  .react-flow__node.dragging {
+    transition: none !important;
+  }
+  
+  /* Text editing cursor for editor content */
+  .react-flow__node .ProseMirror,
+  .react-flow__node .tiptap,
+  .react-flow__node [data-editor="true"],
+  .react-flow__node .prose {
+    cursor: text !important;
+  }
+  
+  .react-flow__node .ProseMirror:hover,
+  .react-flow__node .tiptap:hover,
+  .react-flow__node [data-editor="true"]:hover,
+  .react-flow__node .prose:hover {
+    cursor: text !important;
+  }
+  
+  /* Handle cursor styles */
+  .react-flow__handle {
+    cursor: crosshair !important;
+  }
+  
+  .react-flow__handle:hover {
+    cursor: crosshair !important;
+  }
+  
+  /* NodeResizer styling - hide borders, only show cursor changes */
+  .react-flow__resize-control.line {
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  .react-flow__resize-control.handle {
+    border: none !important;
+    background: transparent !important;
+    width: 15px !important;
+    height: 15px !important;
+  }
+  
+  /* Expand resize areas to cover more border area */
+  .react-flow__resize-control.top {
+    top: -8px !important;
+    height: 16px !important;
+    cursor: ns-resize !important;
+  }
+  
+  .react-flow__resize-control.bottom {
+    bottom: -8px !important;
+    height: 16px !important;
+    cursor: ns-resize !important;
+  }
+  
+  .react-flow__resize-control.left {
+    left: -8px !important;
+    width: 16px !important;
+    cursor: ew-resize !important;
+  }
+  
+  .react-flow__resize-control.right {
+    right: -8px !important;
+    width: 16px !important;
+    cursor: ew-resize !important;
+  }
+  
+  /* Corner resize areas - larger for better UX */
+  .react-flow__resize-control.top-left {
+    top: -8px !important;
+    left: -8px !important;
+    width: 20px !important;
+    height: 20px !important;
+    cursor: nwse-resize !important;
+  }
+  
+  .react-flow__resize-control.top-right {
+    top: -8px !important;
+    right: -8px !important;
+    width: 20px !important;
+    height: 20px !important;
+    cursor: nesw-resize !important;
+  }
+  
+  .react-flow__resize-control.bottom-left {
+    bottom: -8px !important;
+    left: -8px !important;
+    width: 20px !important;
+    height: 20px !important;
+    cursor: nesw-resize !important;
+  }
+  
+  .react-flow__resize-control.bottom-right {
+    bottom: -8px !important;
+    right: -8px !important;
+    width: 20px !important;
+    height: 20px !important;
+    cursor: nwse-resize !important;
+  }
+  
+  /* Make the entire node border area responsive to resize */
+  .react-flow__node .node-container {
+    position: relative;
+  }
+  
+  .react-flow__node .node-container::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+  /* Add cursor styling for node borders */
+  .react-flow__node .node-container:hover {
+    cursor: grab;
+  }
+  
+  /* Override cursor for resize areas when NodeResizer is present */
+  .react-flow__node:has(.react-flow__resize-control) .node-container:hover {
+    cursor: default;
+  }
+}
+
+/* Disable browser zoom to prevent conflicts with React Flow canvas zoom */
+@layer base {
+  html {
+    touch-action: pan-x pan-y;
+  }
+  
+  body {
+    touch-action: pan-x pan-y;
+    overscroll-behavior: none;
+  }
+  
+  /* Prevent pinch-to-zoom on touch devices */
+  * {
+    touch-action: manipulation;
+  }
+  
+  /* Allow React Flow to handle its own touch interactions */
+  .react-flow {
+    touch-action: none;
+  }
+}
+
+nextjs-portal {
+  @apply hidden;
+}

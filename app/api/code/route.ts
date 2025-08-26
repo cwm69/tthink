@@ -1,0 +1,109 @@
+import { deductCredits } from '@/app/actions/credits/deduct';
+import { getCurrentUserId } from '@/lib/auth';
+import { parseError } from '@/lib/error/parse';
+import { gateway, createModel } from '@/lib/gateway';
+import { createRateLimiter, slidingWindow } from '@/lib/rate-limit';
+import {
+  convertToModelMessages,
+  extractReasoningMiddleware,
+  streamText,
+  wrapLanguageModel,
+} from 'ai';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+// Create a rate limiter for the chat API
+const rateLimiter = createRateLimiter({
+  limiter: slidingWindow(10, '1 m'),
+  prefix: 'api-code',
+});
+
+export const POST = async (req: Request) => {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return new Response('User not found', { status: 401 });
+    }
+  } catch (error) {
+    const message = parseError(error);
+
+    return new Response(message, { status: 401 });
+  }
+
+  // Apply rate limiting
+  if (process.env.NODE_ENV === 'production') {
+    const ip = req.headers.get('x-forwarded-for') || 'anonymous';
+    const { success, limit, reset, remaining } = await rateLimiter.limit(ip);
+
+    if (!success) {
+      return new Response('Too many requests', {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': limit.toString(),
+          'X-RateLimit-Remaining': remaining.toString(),
+          'X-RateLimit-Reset': reset.toString(),
+        },
+      });
+    }
+  }
+
+  const { messages, modelId, language } = await req.json();
+
+  if (typeof modelId !== 'string') {
+    return new Response('Model must be a string', { status: 400 });
+  }
+
+  const { models } = await gateway.getAvailableModels();
+
+  const model = models.find((model) => model.id === modelId);
+
+  if (!model) {
+    return new Response('Invalid model', { status: 400 });
+  }
+
+  const enhancedModel = wrapLanguageModel({
+    model: createModel(model.id),
+    middleware: extractReasoningMiddleware({ tagName: 'think' }),
+  });
+
+  const result = streamText({
+    model: enhancedModel,
+    system: [
+      `Output the code in the language specified: ${language ?? 'javascript'}`,
+      'If the user specifies an output language in the context below, ignore it.',
+      'Respond with the code only, no other text.',
+      'Do not format the code as Markdown, just return the code as is.',
+    ].join('\n'),
+    messages: convertToModelMessages(messages),
+    onError: (error) => {
+      console.error(error);
+    },
+    onFinish: async ({ usage }) => {
+      const inputCost = model.pricing?.input
+        ? Number.parseFloat(model.pricing.input)
+        : 0;
+      const outputCost = model.pricing?.output
+        ? Number.parseFloat(model.pricing.output)
+        : 0;
+      const inputTokens = usage.inputTokens ?? 0;
+      const outputTokens = usage.outputTokens ?? 0;
+
+      // Calculate actual cost based on token usage
+      const dollarCost = (inputTokens / 1000000) * inputCost + (outputTokens / 1000000) * outputCost;
+      const creditValue = 0.005; // 1 credit = $0.005 (from original implementation)
+      const creditCost = Math.ceil(dollarCost / creditValue);
+
+      // Deduct credits based on actual usage
+      if (creditCost > 0) {
+        try {
+          await deductCredits(creditCost);
+        } catch (error) {
+          console.error('Failed to deduct credits:', error);
+        }
+      }
+    },
+  });
+
+  return result.toUIMessageStreamResponse();
+};
