@@ -93,6 +93,9 @@ export const POST = async (req: Request) => {
         'The user already knows the context they provided - don\'t repeat it back unless specifically asked.',
         'Focus on discussing improvements, changes, and refinements directly.',
         'Be conversational and concise. Avoid formal recaps or restating the obvious.',
+        'IMPORTANT: Do not output code, files, or other artifacts directly in your responses.',
+        'Instead, describe what you would create with enough detail that it can be applied to the node in a subsequent step.',
+        'For example, instead of outputting actual code, describe the functions, logic, and structure that should be implemented.',
         model.id.startsWith('grok') &&
           'The user may refer to you as @gork, you can ignore this',
       ].filter(Boolean).join('\n')
@@ -101,6 +104,9 @@ export const POST = async (req: Request) => {
       'The user will provide a collection of data from disparate sources.',
       'They may also provide instructions for how to synthesize the content.',
       'If the instructions are a question, then your goal is to answer the question based on the context provided.',
+      'IMPORTANT: Do not output code, files, or other artifacts directly in your responses.',
+      'Instead, describe what you would create with enough detail that it can be applied to the node in a subsequent step.',
+      'For example, instead of outputting actual code, describe the functions, logic, and structure that should be implemented.',
       model.id.startsWith('grok') &&
         'The user may refer to you as @gork, you can ignore this',
       "You will then synthesize the content based on the user's instructions and the context provided.",
