@@ -140,7 +140,8 @@ export const POST = async (req: Request) => {
       } catch (error) {
         console.error('Error converting normalized messages:', error);
         console.error('Normalized messages:', JSON.stringify(normalizedMessages, null, 2));
-        throw new Error(`Message conversion failed: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Message conversion failed: ${message}`);
       }
     })(),
     onFinish: async ({ usage, providerMetadata }) => {

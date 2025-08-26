@@ -509,9 +509,7 @@ export const Canvas = ({ children, ...props }: ReactFlowProps) => {
               nodeDragThreshold={0}
               zoomOnDoubleClick={false}
               selectionOnDrag={true}
-              panOnScrollMode="free"
               nodesDraggable={true}
-              nodesDragHandle=".drag-handle"
               nodesConnectable={true}
               nodesFocusable={true}
               panOnScrollSpeed={1}

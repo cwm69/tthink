@@ -84,6 +84,11 @@ export const POST = async (req: Request) => {
       throw new Error('Invalid email action type');
     }
 
+    if (!env.RESEND_EMAIL) {
+      console.warn('RESEND_EMAIL not configured, skipping email send');
+      return NextResponse.json({}, { status: 200 });
+    }
+
     const { error } = await resend.emails.send({
       from: env.RESEND_EMAIL,
       to: [user.email],

@@ -9,6 +9,10 @@ export async function deductCredits(amount: number): Promise<{ success: boolean;
   try {
     const userId = await getCurrentUserId();
     
+    if (!userId) {
+      return { success: false, remainingCredits: 0, error: 'No user ID found' };
+    }
+    
     // Atomically deduct credits and return new balance
     const result = await database
       .update(profile)

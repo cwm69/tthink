@@ -1,8 +1,4 @@
-import type { 
-  Experimental_LanguageModelV1Middleware,
-  LanguageModelV1CallOptions,
-  LanguageModelV1StreamPart
-} from 'ai';
+// AI SDK types have changed, using any for now
 
 // ANSI color codes for pretty console output
 const colors = {
@@ -31,7 +27,7 @@ function formatMessages(messages: any[]): void {
       const content = msg.content.length > 300 ? msg.content.slice(0, 300) + '...' : msg.content;
       console.log(`      ${content.split('\n').join('\n      ')}`);
     } else if (Array.isArray(msg.content)) {
-      msg.content.forEach((part) => {
+      msg.content.forEach((part: any) => {
         if (part.type === 'text') {
           const content = part.text.length > 300 ? part.text.slice(0, 300) + '...' : part.text;
           console.log(`      ${colors.gray}[text]${colors.reset} ${content}`);
@@ -49,8 +45,8 @@ function formatMessages(messages: any[]): void {
   });
 }
 
-export const loggingMiddleware: Experimental_LanguageModelV1Middleware = {
-  wrapGenerate: async ({ model, doGenerate, params }) => {
+export const loggingMiddleware: any = {
+  wrapGenerate: async ({ model, doGenerate, params }: any) => {
     if (process.env.NODE_ENV !== 'development') {
       return doGenerate();
     }
@@ -62,7 +58,7 @@ export const loggingMiddleware: Experimental_LanguageModelV1Middleware = {
     if (params.prompt) {
       console.log(`${colors.yellow}Prompt:${colors.reset}`);
       const prompt = Array.isArray(params.prompt) ? params.prompt : [params.prompt];
-      prompt.forEach((p, i) => {
+      prompt.forEach((p: any, i: number) => {
         if (typeof p === 'string') {
           const content = p.length > 300 ? p.slice(0, 300) + '...' : p;
           console.log(`  ${content.split('\n').join('\n  ')}`);
@@ -122,7 +118,7 @@ export const loggingMiddleware: Experimental_LanguageModelV1Middleware = {
     }
   },
 
-  wrapStream: async ({ model, doStream, params }) => {
+  wrapStream: async ({ model, doStream, params }: any) => {
     if (process.env.NODE_ENV !== 'development') {
       return doStream();
     }
@@ -134,7 +130,7 @@ export const loggingMiddleware: Experimental_LanguageModelV1Middleware = {
     if (params.prompt) {
       console.log(`${colors.yellow}Prompt:${colors.reset}`);
       const prompt = Array.isArray(params.prompt) ? params.prompt : [params.prompt];
-      prompt.forEach((p) => {
+      prompt.forEach((p: any) => {
         if (typeof p === 'string') {
           const content = p.length > 300 ? p.slice(0, 300) + '...' : p;
           console.log(`  ${content.split('\n').join('\n  ')}`);

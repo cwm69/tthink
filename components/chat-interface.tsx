@@ -54,8 +54,7 @@ export const ChatInterface = ({ nodeId, initialMessages = [], onMessageUpdate, p
   const [isRefining, setIsRefining] = useState(false);
   const [reasoningStartTime, setReasoningStartTime] = useState<number | null>(null);
   const [reasoningDuration, setReasoningDuration] = useState<Record<string, number>>({});
-  const projectContext = useProject();
-  const project = projectContext?.project;
+  const project = useProject();
   const { updateNodeData, getNode, getNodes, getEdges } = useReactFlow();
   const { models } = useGateway();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -72,7 +71,7 @@ export const ChatInterface = ({ nodeId, initialMessages = [], onMessageUpdate, p
     const node = getNode(nodeId);
     if (!node) return '';
 
-    const generatedContent = node.data.generated?.text;
+    const generatedContent = (node.data.generated as any)?.text;
     const instructions = node.data.instructions;
     const nodeType = node.type;
     
@@ -174,9 +173,9 @@ export const ChatInterface = ({ nodeId, initialMessages = [], onMessageUpdate, p
         return;
       }
 
-      const currentContent = node.data.generated?.text || node.data.instructions || '';
+      const currentContent = (node.data.generated as any)?.text || node.data.instructions || '';
       const recentMessages = messages.filter(m => m.role !== 'system').slice(-6);
-      const chatContext = recentMessages.map(m => `${m.role}: ${m.parts?.find(p => p.type === 'text')?.text || m.content || ''}`).join('\n');
+      const chatContext = recentMessages.map(m => `${m.role}: ${m.parts?.find(p => p.type === 'text')?.text || (m as any).content || ''}`).join('\n');
 
       const refinementPrompt = `Based on this chat conversation, please refine the following content:
 
@@ -267,7 +266,7 @@ Please provide a refined version that incorporates the insights from our convers
               .filter(message => message.role !== 'system')
               .filter(message => 
                 message.parts?.some(part => part.type === 'reasoning' || (part.type === 'text' && part.text)) ||
-                message.content
+                (message as any).content
               )
               .map((message) => (
               <Message key={message.id} from={message.role}>
@@ -287,14 +286,14 @@ Please provide a refined version that incorporates the insights from our convers
                         }
                       />
                       <ReasoningContent>
-                        {message.parts?.find(part => part.type === 'reasoning')?.text}
+                        {message.parts?.find(part => part.type === 'reasoning')?.text || ''}
                       </ReasoningContent>
                     </Reasoning>
                   )}
                   
-                  {(message.content || message.parts?.some(part => part.type === 'text' && part.text)) && (
+                  {((message as any).content || message.parts?.some(part => part.type === 'text' && part.text)) && (
                     <Response>
-                      {message.content || message.parts?.find(part => part.type === 'text')?.text}
+                      {(message as any).content || message.parts?.find(part => part.type === 'text')?.text}
                     </Response>
                   )}
                 </MessageContent>

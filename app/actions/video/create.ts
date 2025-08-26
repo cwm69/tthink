@@ -74,9 +74,18 @@ export const generateVideoAction = async ({
     const arrayBuffer = await response.arrayBuffer();
 
     // Track credit usage for video generation
+    let cost = 0.05; // Default fallback cost
+    try {
+      if ('getCost' in provider && typeof provider.getCost === 'function') {
+        cost = (provider as any).getCost() || cost;
+      }
+    } catch {
+      // Use fallback cost
+    }
+    
     await trackCreditUsage({
       action: 'generate_video',
-      cost: provider.getCost(),
+      cost,
     });
 
     const blob = await client.storage

@@ -19,8 +19,8 @@ export function AnonymousProjectProvider({ title, description }: AnonymousProjec
     // Create a real anonymous project for the welcome tour
     const createWelcomeProject = async () => {
       try {
-        const { createAnonymousProject } = await import('@/app/actions/project/create-anonymous');
-        await createAnonymousProject();
+        const { onboardAnonymousUserAction } = await import('@/app/actions/anonymous/onboard');
+        await onboardAnonymousUserAction();
       } catch (error) {
         console.error('Failed to create welcome project:', error);
         setLoading(false);

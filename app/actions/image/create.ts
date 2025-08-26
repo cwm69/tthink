@@ -190,7 +190,7 @@ export const generateImageAction = async ({
 
     const name = `${nanoid()}.${extension}`;
 
-    const file: File = new File([image.uint8Array], name, {
+    const file: File = new File([new Uint8Array(image.uint8Array)], name, {
       type: image.mediaType,
     });
 
@@ -251,10 +251,10 @@ export const generateImageAction = async ({
       const provider = visionModel.providers[0];
       
       try {
-        if (provider.getCost) {
+        if ('getCost' in provider && typeof provider.getCost === 'function') {
           await trackCreditUsage({
             action: 'describe_image',
-            cost: provider.getCost({
+            cost: (provider as any).getCost({
               input: response.usage.prompt_tokens || 0,
               output: response.usage.completion_tokens || 0,
             }),
