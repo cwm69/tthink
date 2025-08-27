@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/kibo-ui/ai/source';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { useChatPanel } from '@/hooks/use-chat-panel';
 import { useReasoning } from '@/hooks/use-reasoning';
@@ -55,6 +54,8 @@ import { toast } from 'sonner';
 import { mutate } from 'swr';
 import type { TextNodeProps } from '.';
 import { ModelSelector } from '../model-selector';
+import { NodeHistoryMenu } from '@/components/node-history-menu';
+import { addVersion, switchToVersion, hasVersions, getCurrentContent } from '@/lib/node-history';
 
 type TextTransformProps = TextNodeProps & {
   title: string;
@@ -98,14 +99,32 @@ export const TextTransform = ({
     }),
     onError: (error) => handleError('Error generating text', error),
     onFinish: ({ message }) => {
-      updateNodeData(id, {
-        generated: {
-          text: message.parts.find((part) => part.type === 'text')?.text ?? '',
-          sources:
-            message.parts?.filter((part) => part.type === 'source-url') ?? [],
-        },
+      // Store current state in history before generation (if content exists)
+      const previousData = data.generated;
+      const newGeneratedData = {
+        text: message.parts.find((part) => part.type === 'text')?.text ?? '',
+        sources:
+          message.parts?.filter((part) => part.type === 'source-url') ?? [],
+      };
+      
+      let updatedNodeData = {
+        ...data,
+        generated: newGeneratedData,
         updatedAt: new Date().toISOString(),
-      });
+        currentVersionPointer: undefined, // Clear to make this the latest version
+      };
+
+      // Add to versions if this is a regeneration (previous content exists)
+      if (previousData?.text) {
+        updatedNodeData = addVersion(
+          updatedNodeData,
+          'generation',
+          { ...data, generated: previousData },
+          { modelId }
+        );
+      }
+
+      updateNodeData(id, updatedNodeData);
 
       setReasoning((oldReasoning) => ({
         ...oldReasoning,
@@ -119,6 +138,21 @@ export const TextTransform = ({
   });
 
   const handleRefinement = useCallback(async (refinementPrompt: string, refinementModelId: string) => {
+    // Store current state in versions before refinement
+    const currentData = getCurrentContent(data);
+    if (currentData?.text) {
+      const updatedData = addVersion(
+        data,
+        'refinement',
+        { ...data, generated: currentData },
+        {
+          prompt: refinementPrompt,
+          modelId: refinementModelId,
+        }
+      );
+      updateNodeData(id, updatedData);
+    }
+
     // Clear the node generation messages and stream the refinement
     setMessages([]);
     await sendMessage(
@@ -131,7 +165,7 @@ export const TextTransform = ({
         },
       }
     );
-  }, [sendMessage, setMessages]);
+  }, [sendMessage, setMessages, data, id, updateNodeData]);
 
   const handleGenerate = useCallback(async () => {
     const incomers = getIncomers({ id }, getNodes(), getEdges());
@@ -230,44 +264,82 @@ export const TextTransform = ({
   }, []);
 
   const [isEditingGenerated, setIsEditingGenerated] = useState(false);
+  const [preventBlur, setPreventBlur] = useState(false);
 
-  const handleEditGenerated = useCallback(() => {
-    setIsEditingGenerated(true);
-  }, []);
 
-  const handleFinishEdit = useCallback(() => {
-    setIsEditingGenerated(false);
-  }, []);
+  // Store reference to debounced manual edit tracking
+  const manualEditTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isManualEditRef = useRef(false);
 
-  // Handle canvas interactions that might leave edit mode stuck
+  // Cleanup timeouts on unmount
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (isEditingGenerated && event.target) {
-        const target = event.target as Element;
-        const nodeElement = target.closest(`[data-id="${id}"]`);
-        
-        // If click is outside this specific node, exit edit mode
-        if (!nodeElement) {
-          setIsEditingGenerated(false);
-        }
+    return () => {
+      if (manualEditTimeoutRef.current) {
+        clearTimeout(manualEditTimeoutRef.current);
       }
     };
-
-    if (isEditingGenerated) {
-      // Use capture phase to catch canvas interactions
-      document.addEventListener('mousedown', handleClickOutside, true);
-      return () => document.removeEventListener('mousedown', handleClickOutside, true);
-    }
-  }, [isEditingGenerated, id]);
-
+  }, []);
+  
   const handleGeneratedTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    const currentContent = getCurrentContent(data);
+    const currentText = currentContent?.text || '';
+    
+    // If this is a significant change, save the current state as a version first
+    if (currentText.trim() && newText !== currentText && !isManualEditRef.current) {
+      // Clear existing timeout
+      if (manualEditTimeoutRef.current) {
+        clearTimeout(manualEditTimeoutRef.current);
+      }
+      
+      isManualEditRef.current = true;
+      
+      // Save current state as a version, then update with new content
+      const updatedDataWithVersion = addVersion(
+        {
+          ...data,
+          generated: { ...data.generated, text: newText },
+          currentVersionPointer: undefined, // New edit becomes latest
+        },
+        'manual_edit',
+        { ...data, generated: currentContent },
+        { userAction: 'manual_edit' }
+      );
+      
+      updateNodeData(id, updatedDataWithVersion);
+      
+      // Reset flag after 2 seconds of no typing
+      manualEditTimeoutRef.current = setTimeout(() => {
+        isManualEditRef.current = false;
+      }, 2000);
+      
+      return;
+    }
+    
+    // Normal update (minor changes or rapid typing)
     updateNodeData(id, {
-      generated: {
-        ...data.generated,
-        text: e.target.value,
-      },
+      ...data,
+      generated: { ...data.generated, text: newText },
+      currentVersionPointer: undefined, // Always latest when editing
     });
-  }, [id, updateNodeData, data.generated]);
+  }, [id, updateNodeData, data]);
+
+  const handleRevert = useCallback((entryId: string) => {
+    const { nodeData, success } = switchToVersion(data, entryId);
+    
+    if (success) {
+      updateNodeData(id, nodeData);
+      // Exit edit mode when switching versions
+      setIsEditingGenerated(false);
+      if (entryId === 'latest') {
+        toast.success('Switched to latest version');
+      } else {
+        toast.success('Switched to previous version');
+      }
+    } else {
+      toast.error('Failed to switch version');
+    }
+  }, [data, id, updateNodeData]);
 
   // No longer needed - using textarea instead of rich text editor
 
@@ -376,6 +448,27 @@ export const TextTransform = ({
           </Button>
         ),
       });
+      
+      // Add history menu if there's versions
+      if (hasVersions(data)) {
+        items.push({
+          tooltip: 'version history',
+          children: (
+            <NodeHistoryMenu
+              nodeData={data}
+              onRevert={handleRevert}
+              disabled={!project?.id}
+              onInteraction={() => {
+                // Temporarily prevent blur when interacting with history
+                setPreventBlur(true);
+                setTimeout(() => {
+                  setPreventBlur(false);
+                }, 1000);
+              }}
+            />
+          ),
+        });
+      }
     } else {
       items.push({
         tooltip: 'generate',
@@ -499,61 +592,67 @@ export const TextTransform = ({
               <Skeleton className="h-4 w-50 animate-pulse rounded-lg" />
             </div>
           )}
-          {data.generated?.text &&
-            !nonUserMessages.length &&
+          {getCurrentContent(data)?.text &&
             status !== 'streaming' &&
             status !== 'submitted' && (
               <div className="nodrag cursor-text select-text w-full">
                 {isEditingGenerated ? (
                   <Textarea
+                    key={data.currentVersionPointer || 'latest'} // Force re-render when version changes
                     autoFocus
-                    value={data.generated?.text || ''}
+                    value={getCurrentContent(data)?.text || ''}
                     onChange={handleGeneratedTextChange}
                     onBlur={(e) => {
-                      // Only finish editing if focus moved to something outside the node
                       const relatedTarget = e.relatedTarget as Element | null;
                       const nodeElement = e.currentTarget.closest(`[data-id="${id}"]`);
                       
-                      // If no related target (like canvas interactions) or target is outside node
-                      if (!relatedTarget) {
-                        // Small delay to handle canvas zoom/pan edge cases
-                        setTimeout(() => {
-                          // Check if we're still in edit mode and no focus is in our node
-                          const activeElement = document.activeElement;
-                          const nodeStillHasFocus = nodeElement?.contains(activeElement);
-                          
-                          if (isEditingGenerated && !nodeStillHasFocus) {
-                            handleFinishEdit();
-                          }
-                        }, 100);
-                      } else if (!nodeElement?.contains(relatedTarget)) {
-                        handleFinishEdit();
+                      // Don't exit if we're preventing blur (dropdown interaction)
+                      if (preventBlur) {
+                        return;
                       }
+                      
+                      // If focus moved to something within the same node, don't exit
+                      if (relatedTarget && nodeElement?.contains(relatedTarget)) {
+                        return;
+                      }
+                      
+                      // Exit edit mode
+                      setTimeout(() => {
+                        if (!preventBlur) {
+                          setIsEditingGenerated(false);
+                        }
+                      }, 50);
                     }}
                     onKeyDown={(e) => {
+                      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Backspace', 'Delete'].includes(e.key)) {
+                        e.stopPropagation();
+                      }
                       if (e.key === 'Escape') {
-                        handleFinishEdit();
+                        setIsEditingGenerated(false);
                       }
                     }}
-                    placeholder="Edit text..."
-                    className="nodrag resize-none border-none bg-transparent shadow-none focus-visible:ring-0 min-h-[200px] text-sm"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onMouseUp={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full resize-none border-none bg-transparent focus:ring-0 focus:outline-none min-h-[200px]"
+                    style={{ fontSize: 'inherit', fontFamily: 'inherit', lineHeight: 'inherit' }}
                   />
                 ) : (
                   <div 
-                    className="w-full break-words cursor-text p-4 hover:bg-muted/20 rounded transition-colors"
+                    className="w-full break-words cursor-text hover:bg-muted/20 rounded transition-colors min-h-[200px]"
                     onDoubleClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleEditGenerated();
+                      setIsEditingGenerated(true);
                     }}
                     title="Double-click to edit"
                   >
-                    <AIResponse className="w-full break-words">{data.generated.text}</AIResponse>
+                    <AIResponse className="w-full break-words">{getCurrentContent(data)?.text}</AIResponse>
                   </div>
                 )}
               </div>
             )}
-          {!data.generated?.text &&
+          {!getCurrentContent(data)?.text &&
             !nonUserMessages.length &&
             status !== 'submitted' && (
               <div className="flex h-full w-full items-center justify-center">

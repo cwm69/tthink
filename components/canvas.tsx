@@ -34,6 +34,8 @@ import type { MouseEvent, MouseEventHandler } from 'react';
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useDebouncedCallback } from 'use-debounce';
+import { addUndoEntry, performUndo, performRedo, canUndo, canRedo } from '@/lib/project-undo';
+import { toast } from 'sonner';
 import { ConnectionLine } from './connection-line';
 import { edgeTypes } from './edges';
 import { nodeTypes } from './nodes';
@@ -132,13 +134,49 @@ export const Canvas = ({ children, ...props }: ReactFlowProps) => {
   const handleNodesChange = useCallback<OnNodesChange>(
     (changes) => {
       setNodes((current) => {
+        // Check for node deletions to add to undo stack
+        const deletions = changes.filter(change => change.type === 'remove');
+        
+        if (deletions.length > 0) {
+          const deletedNodes = deletions.map(deletion => 
+            current.find(node => node.id === deletion.id)
+          ).filter(Boolean) as Node[];
+          
+          const deletedEdges = getEdges().filter(edge =>
+            deletions.some(deletion => 
+              edge.source === deletion.id || edge.target === deletion.id
+            )
+          );
+          
+          // Add to undo stack before applying changes
+          const currentContent = { nodes: current, edges: getEdges(), ...((project?.content as any) || {}) };
+          const updatedContent = addUndoEntry(
+            currentContent,
+            deletedNodes.length > 1 ? 'bulk_operation' : 'node_deletion',
+            'delete',
+            {
+              nodes: deletedNodes,
+              edges: deletedEdges,
+              affectedIds: deletions.map(d => d.id),
+              description: `Delete ${deletedNodes.length > 1 ? `${deletedNodes.length} nodes` : 'node'}`,
+            }
+          );
+          
+          // Update project content with undo stack (async to avoid blocking UI)
+          setTimeout(() => {
+            if (project?.id) {
+              updateProjectAction(project.id, { content: updatedContent });
+            }
+          }, 0);
+        }
+        
         const updated = applyNodeChanges(changes, current);
         save();
         onNodesChange?.(changes);
         return updated;
       });
     },
-    [save, onNodesChange]
+    [save, onNodesChange, getEdges, project]
   );
 
   const handleNodeMouseEnter = useCallback(
@@ -480,6 +518,57 @@ export const Canvas = ({ children, ...props }: ReactFlowProps) => {
   });
 
   useHotkeys('meta+v', handlePaste, {
+    enableOnContentEditable: false,
+    preventDefault: true,
+  });
+
+  // Undo/Redo hotkeys
+  useHotkeys('meta+z', () => {
+    const currentContent = {
+      nodes: getNodes(),
+      edges: getEdges(),
+      ...((project?.content as any) || {}),
+    };
+    
+    if (canUndo(currentContent)) {
+      const result = performUndo(currentContent);
+      if (result.success) {
+        setNodes(result.content.nodes);
+        setEdges(result.content.edges);
+        toast.success(`Undone: ${result.description}`);
+        
+        // Update project with new undo/redo stacks
+        if (project?.id) {
+          updateProjectAction(project.id, { content: result.content });
+        }
+      }
+    }
+  }, {
+    enableOnContentEditable: false,
+    preventDefault: true,
+  });
+
+  useHotkeys('meta+shift+z', () => {
+    const currentContent = {
+      nodes: getNodes(),
+      edges: getEdges(),
+      ...((project?.content as any) || {}),
+    };
+    
+    if (canRedo(currentContent)) {
+      const result = performRedo(currentContent);
+      if (result.success) {
+        setNodes(result.content.nodes);
+        setEdges(result.content.edges);
+        toast.success(`Redone: ${result.description}`);
+        
+        // Update project with new undo/redo stacks
+        if (project?.id) {
+          updateProjectAction(project.id, { content: result.content });
+        }
+      }
+    }
+  }, {
     enableOnContentEditable: false,
     preventDefault: true,
   });
