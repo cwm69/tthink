@@ -4,8 +4,10 @@ import { updateProjectAction } from '@/app/actions/project/update';
 import { prepareProjectForSaving } from '@/lib/emergency-version-cleanup';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { useSaveProject } from '@/hooks/use-save-project';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { handleError } from '@/lib/error/handle';
 import { isValidSourceTarget } from '@/lib/xyflow';
+import { MobileNotesView } from '@/components/mobile-notes-view';
 import { NodeDropzoneProvider } from '@/providers/node-dropzone';
 import { NodeOperationsProvider } from '@/providers/node-operations';
 import { useProject } from '@/providers/project';
@@ -48,7 +50,18 @@ import {
 } from './ui/context-menu';
 // Removed zoom indicator import - now integrated into controls
 
-export const Canvas = ({ children, ...props }: ReactFlowProps) => {
+type Project = {
+  id: string;
+  title: string;
+  updatedAt: string;
+  userId: string;
+};
+
+type CanvasProps = ReactFlowProps & {
+  projects?: Project[];
+};
+
+export const Canvas = ({ children, projects, ...props }: CanvasProps) => {
   const project = useProject();
   const {
     onConnect,
@@ -80,6 +93,7 @@ export const Canvas = ({ children, ...props }: ReactFlowProps) => {
   } = useReactFlow();
   const analytics = useAnalytics();
   const [saveState, setSaveState] = useSaveProject();
+  const isMobile = useIsMobile();
 
   const save = useDebouncedCallback(async () => {
     if (saveState.isSaving || !project?.id) {
@@ -575,6 +589,22 @@ export const Canvas = ({ children, ...props }: ReactFlowProps) => {
   });
 
 
+
+  // Show mobile notes view on mobile devices
+  if (isMobile) {
+    return (
+      <NodeOperationsProvider addNode={addNode} duplicateNode={duplicateNode}>
+        <div className="h-full w-full">
+          <MobileNotesView 
+            nodes={nodes} 
+            edges={edges}
+            projects={projects || []}
+            currentProjectId={project?.id || ''}
+          />
+        </div>
+      </NodeOperationsProvider>
+    );
+  }
 
   return (
     <NodeOperationsProvider addNode={addNode} duplicateNode={duplicateNode}>

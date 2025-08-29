@@ -77,23 +77,31 @@ const Project = async ({ params }: ProjectProps) => {
 
   console.log('Access granted, rendering project page');
 
+  // Fetch all projects for mobile header
+  const allProjects = await database.query.projects.findMany({
+    where: eq(projects.userId, project.userId),
+    orderBy: (projects, { desc }) => desc(projects.updatedAt),
+  });
+
   return (
     <div className="flex h-screen w-screen items-stretch overflow-hidden">
       <ChatPanel />
       <div className="relative flex-1">
         <ProjectProvider data={project}>
-          <Canvas>
+          <Canvas projects={allProjects}>
             <Controls />
             <Toolbar />
             <SaveIndicator />
           </Canvas>
         </ProjectProvider>
-        <Suspense fallback={null}>
-          <TopLeft id={projectId} />
-        </Suspense>
-        <Suspense fallback={null}>
-          <TopRight id={projectId} />
-        </Suspense>
+        <div className="hidden md:block">
+          <Suspense fallback={null}>
+            <TopLeft id={projectId} />
+          </Suspense>
+          <Suspense fallback={null}>
+            <TopRight id={projectId} />
+          </Suspense>
+        </div>
       </div>
       <Reasoning />
     </div>
