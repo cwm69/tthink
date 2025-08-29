@@ -55,7 +55,7 @@ import { mutate } from 'swr';
 import type { TextNodeProps } from '.';
 import { ModelSelector } from '../model-selector';
 import { NodeHistoryMenu } from '@/components/node-history-menu';
-import { addVersion, switchToVersion, hasVersions, getCurrentContent } from '@/lib/node-history';
+import { addDeltaVersion, switchToDeltaVersion, hasDeltaVersions, getCurrentDeltaContent } from '@/lib/node-history-delta';
 
 type TextTransformProps = TextNodeProps & {
   title: string;
@@ -116,10 +116,10 @@ export const TextTransform = ({
 
       // Add to versions if this is a regeneration (previous content exists)
       if (previousData?.text) {
-        updatedNodeData = addVersion(
+        updatedNodeData = addDeltaVersion(
           updatedNodeData,
           'generation',
-          { ...data, generated: previousData },
+          { text: previousData.text },
           { modelId }
         );
       }
@@ -139,12 +139,12 @@ export const TextTransform = ({
 
   const handleRefinement = useCallback(async (refinementPrompt: string, refinementModelId: string) => {
     // Store current state in versions before refinement
-    const currentData = getCurrentContent(data);
+    const currentData = getCurrentDeltaContent(data);
     if (currentData?.text) {
-      const updatedData = addVersion(
+      const updatedData = addDeltaVersion(
         data,
         'refinement',
-        { ...data, generated: currentData },
+        { text: currentData.text },
         {
           prompt: refinementPrompt,
           modelId: refinementModelId,
@@ -282,7 +282,7 @@ export const TextTransform = ({
   
   const handleGeneratedTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
-    const currentContent = getCurrentContent(data);
+    const currentContent = getCurrentDeltaContent(data);
     const currentText = currentContent?.text || '';
     
     // If this is a significant change, save the current state as a version first
@@ -295,14 +295,14 @@ export const TextTransform = ({
       isManualEditRef.current = true;
       
       // Save current state as a version, then update with new content
-      const updatedDataWithVersion = addVersion(
+      const updatedDataWithVersion = addDeltaVersion(
         {
           ...data,
           generated: { ...data.generated, text: newText },
           currentVersionPointer: undefined, // New edit becomes latest
         },
         'manual_edit',
-        { ...data, generated: currentContent },
+        { text: currentText },
         { userAction: 'manual_edit' }
       );
       
@@ -325,7 +325,7 @@ export const TextTransform = ({
   }, [id, updateNodeData, data]);
 
   const handleRevert = useCallback((entryId: string) => {
-    const { nodeData, success } = switchToVersion(data, entryId);
+    const { nodeData, success } = switchToDeltaVersion(data, entryId);
     
     if (success) {
       updateNodeData(id, nodeData);
@@ -450,7 +450,7 @@ export const TextTransform = ({
       });
       
       // Add history menu if there's versions
-      if (hasVersions(data)) {
+      if (hasDeltaVersions(data)) {
         items.push({
           tooltip: 'version history',
           children: (
@@ -592,15 +592,15 @@ export const TextTransform = ({
               <Skeleton className="h-4 w-50 animate-pulse rounded-lg" />
             </div>
           )}
-          {getCurrentContent(data)?.text &&
+          {getCurrentDeltaContent(data)?.text &&
             status !== 'streaming' &&
             status !== 'submitted' && (
               <div className="nodrag cursor-text select-text w-full">
                 {isEditingGenerated ? (
                   <Textarea
-                    key={data.currentVersionPointer || 'latest'} // Force re-render when version changes
+                    key={(data as any).currentVersionPointer || 'latest'} // Force re-render when version changes
                     autoFocus
-                    value={getCurrentContent(data)?.text || ''}
+                    value={getCurrentDeltaContent(data)?.text || ''}
                     onChange={handleGeneratedTextChange}
                     onBlur={(e) => {
                       const relatedTarget = e.relatedTarget as Element | null;
@@ -647,12 +647,12 @@ export const TextTransform = ({
                     }}
                     title="Double-click to edit"
                   >
-                    <AIResponse className="w-full break-words">{getCurrentContent(data)?.text}</AIResponse>
+                    <AIResponse className="w-full break-words">{getCurrentDeltaContent(data)?.text}</AIResponse>
                   </div>
                 )}
               </div>
             )}
-          {!getCurrentContent(data)?.text &&
+          {!getCurrentDeltaContent(data)?.text &&
             !nonUserMessages.length &&
             status !== 'submitted' && (
               <div className="flex h-full w-full items-center justify-center">
@@ -664,6 +664,7 @@ export const TextTransform = ({
             )}
           {Boolean(nonUserMessages.length) &&
             status !== 'submitted' &&
+            status === 'streaming' &&
             nonUserMessages.map((message) => (
               <AIMessage
                 key={message.id}

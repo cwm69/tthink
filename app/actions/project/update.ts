@@ -5,6 +5,7 @@ import { database } from '@/lib/database';
 import { parseError } from '@/lib/error/parse';
 import { projects } from '@/schema';
 import { and, eq } from 'drizzle-orm';
+import { prepareProjectForSaving } from '@/lib/emergency-version-cleanup';
 
 export const updateProjectAction = async (
   projectId: string,
@@ -39,10 +40,16 @@ export const updateProjectAction = async (
       throw new Error('You do not have permission to update this project!');
     }
 
+    // Clean version history if content is being updated and it's too large
+    const updateData = { ...data };
+    if (updateData.content) {
+      updateData.content = prepareProjectForSaving(updateData.content);
+    }
+
     const project = await database
       .update(projects)
       .set({
-        ...data,
+        ...updateData,
         updatedAt: new Date(),
       })
       .where(eq(projects.id, projectId));

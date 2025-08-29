@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { getHistoryForDisplay, hasHistory, getHistoryCount, isShowingHistoricalVersion, getCurrentVersionDescription } from '@/lib/node-history';
+import { getDeltaHistoryForDisplay, hasDeltaVersions, getDeltaHistoryCount, isShowingDeltaHistoricalVersion, getCurrentDeltaVersionDescription } from '@/lib/node-history-delta';
 import { HistoryIcon, RotateCcwIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -22,12 +22,12 @@ type NodeHistoryMenuProps = {
 };
 
 export const NodeHistoryMenu = ({ nodeData, onRevert, disabled = false, onInteraction }: NodeHistoryMenuProps) => {
-  if (!hasHistory(nodeData)) {
+  if (!hasDeltaVersions(nodeData)) {
     return null;
   }
 
-  const history = getHistoryForDisplay(nodeData);
-  const count = getHistoryCount(nodeData);
+  const history = getDeltaHistoryForDisplay(nodeData);
+  const count = getDeltaHistoryCount(nodeData);
 
   return (
     <DropdownMenu modal={false}>

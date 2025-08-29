@@ -1,6 +1,7 @@
 'use client';
 
 import { updateProjectAction } from '@/app/actions/project/update';
+import { prepareProjectForSaving } from '@/lib/emergency-version-cleanup';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { useSaveProject } from '@/hooks/use-save-project';
 import { handleError } from '@/lib/error/handle';
@@ -91,7 +92,7 @@ export const Canvas = ({ children, ...props }: ReactFlowProps) => {
         setSaveState((prev) => ({ ...prev, isSaving: true }));
 
         const response = await updateProjectAction(project.id, {
-          content: toObject(),
+          content: prepareProjectForSaving(toObject()),
         });
 
         if ('error' in response) {
@@ -116,7 +117,7 @@ export const Canvas = ({ children, ...props }: ReactFlowProps) => {
       setSaveState((prev) => ({ ...prev, isSaving: true }));
 
       const response = await updateProjectAction(project.id, {
-        content: toObject(),
+        content: prepareProjectForSaving(toObject()),
       });
 
       if ('error' in response) {
@@ -165,7 +166,7 @@ export const Canvas = ({ children, ...props }: ReactFlowProps) => {
           // Update project content with undo stack (async to avoid blocking UI)
           setTimeout(() => {
             if (project?.id) {
-              updateProjectAction(project.id, { content: updatedContent });
+              updateProjectAction(project.id, { content: prepareProjectForSaving(updatedContent) });
             }
           }, 0);
         }
@@ -539,7 +540,7 @@ export const Canvas = ({ children, ...props }: ReactFlowProps) => {
         
         // Update project with new undo/redo stacks
         if (project?.id) {
-          updateProjectAction(project.id, { content: result.content });
+          updateProjectAction(project.id, { content: prepareProjectForSaving(result.content) });
         }
       }
     }
@@ -564,7 +565,7 @@ export const Canvas = ({ children, ...props }: ReactFlowProps) => {
         
         // Update project with new undo/redo stacks
         if (project?.id) {
-          updateProjectAction(project.id, { content: result.content });
+          updateProjectAction(project.id, { content: prepareProjectForSaving(result.content) });
         }
       }
     }
