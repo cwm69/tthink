@@ -144,9 +144,10 @@ export const ProjectSelector = ({
         <ComboboxTrigger className="w-[200px] rounded-full border-none bg-transparent shadow-none" />
         <ComboboxContent
           filter={filterByFuse}
-          className="p-0"
+          className="p-0 z-[110]"
           popoverOptions={{
             sideOffset: 8,
+            className: "z-[110]",
           }}
         >
           <ComboboxInput />

@@ -3,16 +3,10 @@
 import { ProjectSelector } from './project-selector';
 import { Menu } from './menu';
 import { Logo } from './logo';
-
-type Project = {
-  id: string;
-  title: string;
-  updatedAt: string;
-  userId: string;
-};
+import { projects } from '@/schema';
 
 type MobileHeaderProps = {
-  projects: Project[];
+  projects: (typeof projects.$inferSelect)[];
   currentProjectId: string;
 };
 

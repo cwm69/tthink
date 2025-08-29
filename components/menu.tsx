@@ -73,7 +73,7 @@ export const Menu = () => {
           align="end"
           collisionPadding={8}
           sideOffset={16}
-          className="w-52"
+          className="w-52 z-[110]"
         >
           <DropdownMenuLabel>
             <Avatar>

@@ -50,15 +50,10 @@ import {
 } from './ui/context-menu';
 // Removed zoom indicator import - now integrated into controls
 
-type Project = {
-  id: string;
-  title: string;
-  updatedAt: string;
-  userId: string;
-};
+import { projects } from '@/schema';
 
 type CanvasProps = ReactFlowProps & {
-  projects?: Project[];
+  projects?: (typeof projects.$inferSelect)[];
 };
 
 export const Canvas = ({ children, projects, ...props }: CanvasProps) => {
