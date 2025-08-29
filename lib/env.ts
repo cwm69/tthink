@@ -10,9 +10,9 @@ export const env = createEnv({
     SUPABASE_SERVICE_ROLE_KEY: z.string(),
     SUPABASE_AUTH_HOOK_SECRET: z.string(),
 
-    // Optional for development
-    UPSTASH_REDIS_REST_URL: z.string().url().optional(),
-    UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+    // Optional for development - Vercel Upstash KV integration naming
+    KV_REST_API_URL: z.string().url().optional(),
+    KV_REST_API_TOKEN: z.string().optional(),
 
     RESEND_TOKEN: z.string().optional(),
     RESEND_EMAIL: z.string().email().optional(),
@@ -61,8 +61,8 @@ export const env = createEnv({
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
     MINIMAX_GROUP_ID: process.env.MINIMAX_GROUP_ID,
     MINIMAX_API_KEY: process.env.MINIMAX_API_KEY,
-    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
-    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+    KV_REST_API_URL: process.env.KV_REST_API_URL,
+    KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN,
     RESEND_TOKEN: process.env.RESEND_TOKEN,
     RESEND_EMAIL: process.env.RESEND_EMAIL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
