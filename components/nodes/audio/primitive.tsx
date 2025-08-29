@@ -6,11 +6,12 @@ import {
   DropzoneEmptyState,
 } from '@/components/ui/kibo-ui/dropzone';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { handleError } from '@/lib/error/handle';
 import { uploadFile } from '@/lib/upload';
 import { useProject } from '@/providers/project';
 import { useReactFlow } from '@xyflow/react';
-import { ChevronDownIcon, ChevronRightIcon, Loader2Icon, UploadIcon } from 'lucide-react';
+import { ChevronDownIcon, ChevronRightIcon, Loader2Icon, UploadIcon, MicIcon } from 'lucide-react';
 import { useState } from 'react';
 import type { AudioNodeProps } from '.';
 
@@ -28,6 +29,7 @@ export const AudioPrimitive = ({
   const [files, setFiles] = useState<File[] | undefined>();
   const project = useProject();
   const [isUploading, setIsUploading] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
 
   const handleDrop = async (files: File[]) => {
@@ -53,6 +55,7 @@ export const AudioPrimitive = ({
         },
       });
 
+      setIsTranscribing(true);
       const response = await transcribeAction(url, project?.id);
 
       if ('error' in response) {
@@ -62,10 +65,12 @@ export const AudioPrimitive = ({
       updateNodeData(id, {
         transcript: response.transcript,
       });
+      setIsTranscribing(false);
     } catch (error) {
       handleError('Error uploading video', error);
     } finally {
       setIsUploading(false);
+      setIsTranscribing(false);
     }
   };
 
@@ -82,12 +87,23 @@ export const AudioPrimitive = ({
         )}
         {!isUploading && data.content && (
           <div className="w-full">
-            {/* biome-ignore lint/a11y/useMediaCaption: <explanation> */}
-            <audio
-              src={data.content.url}
-              controls
-              className="w-full rounded-none"
-            />
+            <div className="relative">
+              {/* biome-ignore lint/a11y/useMediaCaption: <explanation> */}
+              <audio
+                src={data.content.url}
+                controls
+                className="w-full rounded-none"
+              />
+              {isTranscribing && (
+                <Badge 
+                  variant="secondary" 
+                  className="absolute top-2 right-2 h-6 px-2 text-xs flex items-center gap-1"
+                >
+                  <MicIcon size={10} className="animate-pulse" />
+                  Transcribing...
+                </Badge>
+              )}
+            </div>
             {data.transcript && (
               <div className="mt-3 border-t border-border">
                 <button
@@ -117,7 +133,7 @@ export const AudioPrimitive = ({
         {!isUploading && !data.content && (
           <div className="w-full">
             <Dropzone
-              maxSize={1024 * 1024 * 10}
+              maxSize={1024 * 1024 * 25}
               minSize={1024}
               maxFiles={1}
               multiple={false}

@@ -602,7 +602,8 @@ export const TextTransform = ({
           )}
           {getCurrentDeltaContent(data)?.text &&
             status !== 'submitted' && 
-            status !== 'streaming' && (
+            status !== 'streaming' && 
+            !nonUserMessages.length && (
               <div className="nodrag cursor-text select-text w-full">
                 {isEditingGenerated ? (
                   <Textarea
