@@ -550,6 +550,14 @@ export const TextTransform = ({
   // Additional effect to handle streaming content updates
   useEffect(() => {
     if (status === 'streaming') {
+      // Debug streaming
+      console.log('🔄 Streaming status:', { 
+        status, 
+        messagesCount: messages.length, 
+        nonUserMessages: messages.filter(m => m.role !== 'user').length,
+        latestMessage: messages[messages.length - 1]?.parts?.find(p => p.type === 'text')?.text?.slice(0, 50) + '...'
+      });
+      
       const interval = setInterval(() => {
         if (scrollContainerRef.current && isUserNearBottom.current) {
           scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
@@ -558,7 +566,7 @@ export const TextTransform = ({
       
       return () => clearInterval(interval);
     }
-  }, [status]);
+  }, [status, messages]);
 
   // Ensure scrolling is available immediately on mount and initialize position tracking
   useEffect(() => {
@@ -593,8 +601,8 @@ export const TextTransform = ({
             </div>
           )}
           {getCurrentDeltaContent(data)?.text &&
-            status !== 'streaming' &&
-            status !== 'submitted' && (
+            status !== 'submitted' && 
+            status !== 'streaming' && (
               <div className="nodrag cursor-text select-text w-full">
                 {isEditingGenerated ? (
                   <Textarea
@@ -664,7 +672,6 @@ export const TextTransform = ({
             )}
           {Boolean(nonUserMessages.length) &&
             status !== 'submitted' &&
-            status === 'streaming' &&
             nonUserMessages.map((message) => (
               <AIMessage
                 key={message.id}
